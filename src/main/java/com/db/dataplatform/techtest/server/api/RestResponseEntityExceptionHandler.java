@@ -1,5 +1,6 @@
 package com.db.dataplatform.techtest.server.api;
 
+import com.db.dataplatform.techtest.server.exception.ChecksumNotMatchingException;
 import com.db.dataplatform.techtest.server.exception.DataNotFoundException;
 import com.db.dataplatform.techtest.server.exception.ErrorResponse;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +20,7 @@ public class RestResponseEntityExceptionHandler
         extends ResponseEntityExceptionHandler {
 
     private String NOT_FOUND = "NOT_FOUND";
+    private String BAD_REQUEST = "BAD_REQUEST";
 
     @ExceptionHandler(value = {ConstraintViolationException.class})
     protected ResponseEntity<Object> handleConflict(Exception ex, WebRequest request) {
@@ -28,7 +30,6 @@ public class RestResponseEntityExceptionHandler
         return handleExceptionInternal(ex, bodyOfResponse +" : "+ ex.getMessage(),
                 new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
-
 
     @ExceptionHandler(value = {DataNotFoundException.class})
     public final ResponseEntity<Object> processDataNotFoundException(DataNotFoundException dataNotFoundException)
@@ -40,4 +41,13 @@ public class RestResponseEntityExceptionHandler
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(value = {ChecksumNotMatchingException.class})
+    public final ResponseEntity<Object> processChecksumNotMatchingException(ChecksumNotMatchingException checksumNotMatchingException)
+    {
+        List<String> details = new ArrayList<>();
+        details.add(checksumNotMatchingException.getLocalizedMessage());
+
+        ErrorResponse error = new ErrorResponse(BAD_REQUEST, details);
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
 }
