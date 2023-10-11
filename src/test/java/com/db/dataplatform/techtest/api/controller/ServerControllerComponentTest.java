@@ -1,0 +1,141 @@
+package com.db.dataplatform.techtest.api.controller;
+
+import com.db.dataplatform.techtest.TestDataHelper;
+import com.db.dataplatform.techtest.server.api.controller.ServerController;
+import com.db.dataplatform.techtest.server.api.model.DataEnvelope;
+import com.db.dataplatform.techtest.server.component.Server;
+import com.db.dataplatform.techtest.server.exception.HadoopClientException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.boot.test.web.client.MockServerRestTemplateCustomizer;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriTemplate;
+
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
+
+@RunWith(MockitoJUnitRunner.class)
+public class ServerControllerComponentTest {
+
+	public static final String URI_PUSHDATA = "http://localhost:8090/dataserver/pushdata";
+
+	public static final String URI_HADOOP_DATA_LAKE = "http://localhost:8090/hadoopserver/pushbigdata";
+
+	public static final UriTemplate URI_GETDATA = new UriTemplate("http://localhost:8090/dataserver/data/{blockType}");
+	public static final UriTemplate URI_PATCHDATA = new UriTemplate("http://localhost:8090/dataserver/update/{name}/{newBlockType}");
+
+	@Mock
+	private RestTemplateBuilder restTemplateBuilder;
+
+	@Mock
+	private Server serverMock;
+
+	private DataEnvelope testDataEnvelope;
+	private ObjectMapper objectMapper;
+
+	@Mock
+	private RestTemplate restTemplate;
+
+
+	private MockMvc mockMvc;
+
+	private ServerController serverController;
+
+	private ServerController serverController2;
+	@Before
+	public void setUp() throws HadoopClientException, NoSuchAlgorithmException, IOException {
+
+ 		serverController = new ServerController(serverMock);
+
+		mockMvc = standaloneSetup(serverController).build();
+
+		objectMapper = Jackson2ObjectMapperBuilder
+				.json()
+				.build();
+
+		testDataEnvelope = TestDataHelper.createTestDataEnvelopeApiObject();
+
+		when(serverMock.saveDataEnvelope(any(DataEnvelope.class), any() )).thenReturn(true);
+	}
+
+	@Test
+	public void testPushDataPostCallWorksAsExpected() throws Exception {
+
+		String testDataEnvelopeJson = objectMapper.writeValueAsString(testDataEnvelope);
+
+
+		MvcResult mvcResult = mockMvc.perform(post(URI_PUSHDATA)
+				.content(testDataEnvelopeJson)
+				.contentType(MediaType.APPLICATION_JSON_VALUE))
+				.andExpect(status().isOk())
+				.andReturn();
+
+
+		boolean checksumPass = Boolean.parseBoolean(mvcResult.getResponse().getContentAsString());
+
+		assertThat(checksumPass).isTrue();
+	}
+
+	@Test
+	public void testGetDataCallWorksAsExpected() throws Exception {
+		Map<String, String> urlParams = new HashMap<>();
+		urlParams.put("blockType", "BLOCKTYPEA");
+
+		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(URI_GETDATA.toString());
+
+		MvcResult mvcResult = mockMvc.perform(get(builder.buildAndExpand(urlParams).toUri())
+						.contentType(MediaType.APPLICATION_JSON_VALUE))
+				.andExpect(status().isOk())
+				.andReturn();
+		String result  = mvcResult.getResponse().getContentAsString();
+		assertThat(result).isNotNull();
+	}
+
+
+	@Test
+	public void testUpdateDataCallWorksAsExpected() throws Exception {
+		Map<String, String> urlParams = new HashMap<>();
+		urlParams.put("name", "Test");
+		urlParams.put("newBlockType", "BLOCKTYPEB");
+
+		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(URI_PATCHDATA.toString());
+
+		MvcResult mvcResult = mockMvc.perform(patch(builder.buildAndExpand(urlParams).toUri())
+						.contentType(MediaType.APPLICATION_JSON_VALUE))
+				.andExpect(status().isOk())
+				.andReturn();
+		String result  = mvcResult.getResponse().getContentAsString();
+		assertThat(result).isNotNull();
+	}
+
+
+	private static MockRestServiceServer buildServer(RestTemplate restTemplate) {
+		MockServerRestTemplateCustomizer serverRestTemplateCustomizer =
+				new MockServerRestTemplateCustomizer();
+		serverRestTemplateCustomizer.customize(restTemplate);
+		return serverRestTemplateCustomizer.getServer();
+	}
+
+}
