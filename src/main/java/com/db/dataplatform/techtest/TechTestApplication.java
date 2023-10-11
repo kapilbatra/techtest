@@ -16,7 +16,9 @@ import org.springframework.retry.annotation.EnableRetry;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 
-import static com.db.dataplatform.techtest.Constant.*;
+import static com.db.dataplatform.techtest.Constant.DUMMY_DATA;
+import static com.db.dataplatform.techtest.Constant.HEADER_NAME;
+import static com.db.dataplatform.techtest.Constant.MD5_CHECKSUM;
 
 @SpringBootApplication
 @EnableRetry
