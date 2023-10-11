@@ -56,15 +56,6 @@ public class TechTestApplication {
 		DataEnvelope dataEnvelope = new DataEnvelope(dataHeader, dataBody);
 
 		client.pushData(dataEnvelope);
-
-
-		DataBody dataBody2 = new DataBody(Long.valueOf(2), null, "aaaaaaaaaaaassssdddwdwdwwdwdwdwdwdwdwdwdwdwdwdwdd", "57213EB447929BB6003FEF04BA0E60C6", null);
-
-		DataHeader dataHeader2 = new DataHeader(Long.valueOf(2), "ABC", BlockTypeEnum.BLOCKTYPEA, null);
-
-		DataEnvelope dataEnvelope2 = new DataEnvelope(dataHeader2, dataBody2);
-
-		client.pushData(dataEnvelope2);
 	}
 
 }
